@@ -75,12 +75,21 @@ async def verify_puzzle(payload: PuzzleCheck):
         raise HTTPException(status_code=400, detail="Unknown module")
         
     if user_answer == SECRET_ANSWERS[module_name]:
-        # Tworzymy log o sukcesie
+     
+        if module_name not in game_state["restored_modules"]:
+        game_state["restored_modules"].append(module_name)
+    
+        game_state["progress"] = calculate_progress()
+
+# Tworzymy log o sukcesie
         event_data = {
             "timestamp": datetime.datetime.utcnow().isoformat(),
             "type": f"MODULE_{module_name.upper()}_RESTORED",
             "data": {"status": "SUCCESS"}
         }
+
+
+        
         system_events.append(event_data)
         
         # Rozsyłamy info przez WebSocket do wszystkich połączonych urządzeń
