@@ -4,6 +4,28 @@ from pydantic import BaseModel
 from typing import List
 import datetime
 
+
+game_state = {
+    "power": False,
+    "unlocked_modules": [],
+    "restored_modules": [],
+    "progress": 0,
+    "core_status": "CORRUPTED"
+}
+
+def calculate_progress():
+
+    progress = 0
+
+    if game_state["power"]:
+        progress += 4
+
+    progress += len(game_state["unlocked_modules"]) * 12
+
+    progress += len(game_state["restored_modules"]) * 12
+
+    return min(progress, 100)
+    
 app = FastAPI()
 
 # Zezwalamy frontendowi na komunikację z serwerem
