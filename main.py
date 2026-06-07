@@ -92,7 +92,10 @@ def read_root():
 
 @app.get("/events")
 def get_events():
-    return {"events": system_events}
+    return {
+        "events": system_events,
+        "game_state": game_state
+    }
 
 
 @app.post("/verify-puzzle")
