@@ -164,6 +164,22 @@ async def unlock_module(module: str):
     return {"status": "OK"}
 
 
+
+@app.post("/reset")
+async def reset_game():
+
+    game_state["power"] = False
+    game_state["unlocked_modules"] = []
+    game_state["restored_modules"] = []
+    game_state["progress"] = 0
+    game_state["core_status"] = "CORRUPTED"
+
+    system_events.clear()
+
+    await broadcast_state()
+
+    return {"status": "RESET_OK"}
+
 # =========================
 # WEBSOCKET
 # =========================
