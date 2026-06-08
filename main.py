@@ -23,6 +23,11 @@ game_state = {
     "unlocked_modules": [],
     "restored_modules": [],
     "progress": 0,
+
+    "bad_floppy": False,
+    "duck_bad": False,
+    "duck_good": False,
+
     "core_status": "CORRUPTED"
 }
 
@@ -151,10 +156,57 @@ async def power_on():
 @app.post("/unlock/{module}")
 async def unlock_module(module: str):
 
+    if module == "bad_floppy":
+
+        game_state["bad_floppy"] = True
+
+        system_events.append({
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "type": "BAD_FLOPPY_DETECTED",
+            "data": {}
+        })
+
+        await broadcast_state()
+
+        return {"status": "OK"}
+
+
+    if module == "duck_bad":
+
+        game_state["duck_bad"] = True
+
+        system_events.append({
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "type": "BAD_CORE_INSERTED",
+            "data": {}
+        })
+
+        await broadcast_state()
+
+        return {"status": "OK"}
+
+
+    if module == "duck_good":
+
+        game_state["duck_good"] = True
+
+        system_events.append({
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "type": "GOOD_CORE_INSERTED",
+            "data": {}
+        })
+
+        await broadcast_state()
+
+        return {"status": "OK"}
+    
     if module not in game_state["unlocked_modules"]:
         game_state["unlocked_modules"].append(module)
 
     game_state["progress"] = calculate_progress()
+
+
+    
 
     system_events.append({
         "timestamp": datetime.datetime.utcnow().isoformat(),
