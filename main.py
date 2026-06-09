@@ -156,7 +156,9 @@ async def power_on():
 @app.post("/unlock/{module}")
 async def unlock_module(module: str):
 
-    if module == "bad_floppy":
+if module == "bad_floppy":
+
+    if not game_state["bad_floppy"]:
 
         game_state["bad_floppy"] = True
 
@@ -166,12 +168,14 @@ async def unlock_module(module: str):
             "data": {}
         })
 
-        await broadcast_state()
+    await broadcast_state()
 
-        return {"status": "OK"}
+    return {"status": "OK"}
 
 
-    if module == "duck_bad":
+   if module == "duck_bad":
+
+    if not game_state["duck_bad"]:
 
         game_state["duck_bad"] = True
 
@@ -181,24 +185,12 @@ async def unlock_module(module: str):
             "data": {}
         })
 
-        await broadcast_state()
+    await broadcast_state()
 
-        return {"status": "OK"}
+    return {"status": "OK"}
 
 
-    if module == "duck_good":
-
-        game_state["duck_good"] = True
-
-        system_events.append({
-            "timestamp": datetime.datetime.utcnow().isoformat(),
-            "type": "GOOD_CORE_INSERTED",
-            "data": {}
-        })
-
-        await broadcast_state()
-
-        return {"status": "OK"}
+   
     
     if module not in game_state["unlocked_modules"]:
         game_state["unlocked_modules"].append(module)
