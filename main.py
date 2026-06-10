@@ -3,8 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 import datetime
+import requests
 
 app = FastAPI()
+
+HA_URL = "http://192.168.1.137:8123"
+HA_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhMTU4OWM0ODFiY2Y0NmE0YTIyNmJjYmZhNDBhMzYyOSIsImlhdCI6MTc4MTEyMzY2MywiZXhwIjoyMDk2NDgzNjYzfQ.VQcvW23zRZ4OQSJbelXmQyDJEhaqCmkUd2DDVfoQcMk
+"
 
 app.add_middleware(
     CORSMiddleware,
@@ -226,6 +231,35 @@ async def reset_game():
     await broadcast_state()
 
     return {"status": "RESET_OK"}
+# =========================
+# 
+# =========================
+
+@app.post("/scene/{scene_name}")
+async def run_scene(scene_name: str):
+
+    try:
+
+        requests.post(
+            f"{HA_URL}/api/services/scene/turn_on",
+            headers={
+                "Authorization": f"Bearer {HA_TOKEN}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "entity_id": f"scene.{scene_name}"
+            },
+            timeout=5
+        )
+
+        return {"status": "ok"}
+
+    except Exception as e:
+
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 
 # =========================
 # WEBSOCKET
