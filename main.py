@@ -4,11 +4,11 @@ from pydantic import BaseModel
 from typing import List
 import datetime
 import requests
-import asyncio  # Dodane do obsługi odliczania minuty
+import asyncio
 
 app = FastAPI()
 
-# Twój aktualny link z ngroka (pamiętaj, aby go zmienić, jeśli zrestartujesz ngroka!)
+# Link z ngroka (pamiętaj o aktualizacji, jeśli zrestartujesz ngroka na komputerze!)
 HA_URL = "https://aged-nutcase-nearby.ngrok-free.dev"
 
 HA_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhMTU4OWM0ODFiY2Y0NmE0YTIyNmJjYmZhNDBhMzYyOSIsImlhdCI6MTc4MTEyMzY2MywiZXhwIjoyMDk2NDgzNjYzfQ.VQcvW23zRZ4OQSJbelXmQyDJEhaqCmkUd2DDVfoQcMk"
@@ -89,25 +89,25 @@ async def broadcast_state():
 
 async def run_scene(scene_name: str):
     try:
-        # Mapujemy logiczne nazwy z kodu na Twoje dokładne Webhook ID w Home Assistant
+        # Mapowanie nazw na Twoje dokładne Webhook ID z Home Assistanta
         webhook_mapping = {
-            "error_start": "odpal_error_start",       # <-- Twój webhook do startu gry
-            "error_end": "odpal_error_end",           # <-- Upewnij się, że tak nazywa się webhook finałowy w HA
-            "error_sprzatanie": "odpal_error_sprzatanie" # <-- Upewnij się, że tak nazywa się webhook sprzątania w HA
+            "error_start": "odpal_error_start",
+            "error_end": "odpal_error_end",
+            "error_sprzatanie": "odpal_error_sprzatanie"
         }
         
         actual_webhook = webhook_mapping.get(scene_name, scene_name)
         webhook_url = f"{HA_URL}/api/webhook/{actual_webhook}"
         
-        print(f"Próba wysłania webhooka na adres: {webhook_url}")
+        print(f"Wysyłam żądanie POST na webhook: {webhook_url}")
         
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, lambda: requests.post(
             webhook_url,
             timeout=5
         ))
-        print(f"Webhook {actual_webhook} wysłany pomyślnie!")
-        return {"status": "ok"}
+        print(f"Webhook {actual_webhook} wysłany pomyślnie do HA!")
+        return {"status": "ok", "webhook_sent": actual_webhook}
     except Exception as e:
         print(f"Błąd wywołania webhooka {scene_name}: {e}")
         return {"status": "error", "message": str(e)}
@@ -124,7 +124,7 @@ async def delayed_final_cleanup():
     game_state["core_status"] = "BOOTING COMPLETE"
     await broadcast_state()
     
-    # Odpalenie sceny sprzątania w Home Assistant
+    # Odpalenie sceny sprzątania w Home Assistant przez Webhook
     await run_scene("error_sprzatanie")
     
     # Odpalenie Spotify przez Home Assistant
@@ -264,71 +264,7 @@ async def unlock_module(module: str):
     return {"status": "OK"}
 
 
-# Zmieniono na @app.get, żebyś mogła zresetować grę wpisując link w przeglądarkę
-@app.get("/reset")
+# PRZYWRÓCONE DO @app.post dlla poprawnego działania frontendu gry
+@app.post("/reset")
 async def reset_game():
-    game_state["power"] = False
-    game_state["unlocked_modules"] = []
-    game_state["restored_modules"] = []
-    game_state["progress"] = 0
-    game_state["bad_floppy"] = False
-    game_state["duck_bad"] = False
-    game_state["duck_good"] = False
-    game_state["core_status"] = "CORRUPTED"
-    system_events.clear()
-    await broadcast_state()
-    return {"status": "RESET_OK"}
-
-
-@app.get("/scene/{scene_name}")
-async def run_scene_endpoint(scene_name: str):
-    return await run_scene(scene_name)
-
-
-# =========================
-# WEBSOCKET (Start gry tylko przez index.html)
-# =========================
-
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-
-    # Sprawdzamy parametry połączenia (kto się łączy)
-    client_type = websocket.query_params.get("client", "unknown")
-
-    # Scena startowa odpala się TYLKO gdy łączy się PIERWSZY gracz (index.html),
-    # a nie telewizor (TV.html) i gdy gra jeszcze nie ruszyła (power to False)
-    if client_type == "player" and len([c for c in active_connections if getattr(c, 'is_player', False)]) == 0 and not game_state["power"]:
-        print("Pierwszy GRACZ połączony przez index.html! Odpalam scenę startową...")
-        
-        game_state["power"] = True
-        game_state["progress"] = calculate_progress()
-        system_events.append({
-            "timestamp": datetime.datetime.utcnow().isoformat(),
-            "type": "POWER_ON",
-            "data": {}
-        })
-        # Wywołujemy bezpieczną, logiczną nazwę - funkcja run_scene sama zmieni ją na prawidłowy webhook
-        await run_scene("error_start")
-
-    # Oznaczamy połączenie, żeby serwer pamiętał, kto jest kim
-    if client_type == "player":
-        websocket.is_player = True
-    else:
-        websocket.is_player = False
-
-    active_connections.append(websocket)
-
-    # Wysyłamy aktualny stan gry do nowo połączonego ekranu
-    await websocket.send_json({
-        "type": "STATE_UPDATE",
-        "events": system_events,
-        "game_state": game_state
-    })
-
-    try:
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        if websocket in active_connections:
-            active_connections.remove(websocket)
+    game_state["power"] =
