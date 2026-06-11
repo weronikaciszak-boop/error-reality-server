@@ -7,7 +7,7 @@ import requests
 
 app = FastAPI()
 
-HA_URL = "http://192.168.1.137:8123"
+HA_URL = "https://aged-nutcase-nearby.ngrok-free.dev"
 HA_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhMTU4OWM0ODFiY2Y0NmE0YTIyNmJjYmZhNDBhMzYyOSIsImlhdCI6MTc4MTEyMzY2MywiZXhwIjoyMDk2NDgzNjYzfQ.VQcvW23zRZ4OQSJbelXmQyDJEhaqCmkUd2DDVfoQcMk
 "
 
