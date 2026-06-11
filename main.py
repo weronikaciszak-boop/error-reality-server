@@ -243,14 +243,10 @@ async def unlock_module(module: str):
             })
         await broadcast_state()
         
-        # 1. Odpalenie sceny ewakuacji (error_end)
         await run_scene("error_end")
-        
-        # 2. Start odliczania minuty w tle (balkon)
         asyncio.create_task(delayed_final_cleanup())
         return {"status": "OK"}
 
-    # Standardowe moduły nfc
     if module not in game_state["unlocked_modules"]:
         game_state["unlocked_modules"].append(module)
 
@@ -264,7 +260,31 @@ async def unlock_module(module: str):
     return {"status": "OK"}
 
 
-# PRZYWRÓCONE DO @app.post dlla poprawnego działania frontendu gry
+# 1. WERSJA DLA STRONY WWW (POST)
 @app.post("/reset")
-async def reset_game():
-    game_state["power"] =
+async def reset_game_post():
+    return await execute_reset()
+
+# 2. WERSJA DLA CIEBIE DO PRZEGLĄDARKI (GET)
+@app.get("/reset")
+async def reset_game_get():
+    return await execute_reset()
+
+# Wspólna funkcja resetująca, żeby nie powtarzać kodu
+async def execute_reset():
+    game_state["power"] = False
+    game_state["unlocked_modules"] = []
+    game_state["restored_modules"] = []
+    game_state["progress"] = 0
+    game_state["bad_floppy"] = False
+    game_state["duck_bad"] = False
+    game_state["duck_good"] = False
+    game_state["core_status"] = "CORRUPTED"
+    system_events.clear()
+    await broadcast_state()
+    return {"status": "RESET_OK"}
+
+
+@app.get("/scene/{scene_name}")
+async def run_scene_endpoint(scene_name: str):
+    return await run_scene(scene_name)
