@@ -281,15 +281,21 @@ async def run_scene_endpoint(scene_name: str):
 
 
 # =========================
-# WEBSOCKET (Wykrywa wejście pierwszego gracza)
+# ZMODYFIKOWANY WEBSOCKET (Start gry tylko przez index.html)
 # =========================
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
 
-    # Sprawdzamy, czy to pierwszy łączący się telefon i gra jest zresetowana
-    if len(active_connections) == 0 and not game_state["power"]:
+    # Sprawdzamy parametry połączenia (kto się łączy)
+    client_type = websocket.query_params.get("client", "unknown")
+
+    # Scena startowa odpala się TYLKO gdy łączy się PIERWSZY gracz (index.html),
+    # a nie telewizor (TV.html) i gdy gra jeszcze nie ruszyła
+    if client_type == "player" and len([c for c in active_connections if getattr(c, 'is_player', False)]) == 0 and not game_state["power"]:
+        print("Pierwszy GRACZ połączony przez index.html! Odpalam scenę startową...")
+        
         game_state["power"] = True
         game_state["progress"] = calculate_progress()
         system_events.append({
@@ -300,8 +306,15 @@ async def websocket_endpoint(websocket: WebSocket):
         # Odpalenie sceny startowej w HA (error_start)
         await run_scene("error_start")
 
+    # Oznaczamy połączenie, żeby serwer pamiętał, kto jest kim
+    if client_type == "player":
+        websocket.is_player = True
+    else:
+        websocket.is_player = False
+
     active_connections.append(websocket)
 
+    # Wysyłamy aktualny stan gry do nowo połączonego ekranu
     await websocket.send_json({
         "type": "STATE_UPDATE",
         "events": system_events,
