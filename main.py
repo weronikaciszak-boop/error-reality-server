@@ -38,6 +38,7 @@ game_state = {
 
 system_events = []
 active_connections: List[WebSocket] = []
+active_players: List[WebSocket] = [] # Bezpieczna lista na połączenia graczy
 
 SECRET_ANSWERS = {
     "food": "arch",
@@ -79,9 +80,12 @@ async def broadcast_state():
             await connection.send_json(payload)
         except:
             disconnected.append(connection)
+    
     for connection in disconnected:
         if connection in active_connections:
             active_connections.remove(connection)
+        if connection in active_players:
+            active_players.remove(connection)
 
 # =========================
 # FUNCTION TO RUN WEBHOOKS IN HOME ASSISTANT
@@ -89,7 +93,6 @@ async def broadcast_state():
 
 async def run_scene(scene_name: str):
     try:
-        # Mapowanie nazw na Twoje dokładne Webhook ID z Home Assistanta
         webhook_mapping = {
             "error_start": "odpal_error_start",
             "error_end": "odpal_error_end",
@@ -117,17 +120,11 @@ async def run_scene(scene_name: str):
 # =========================
 
 async def delayed_final_cleanup():
-    # Czekamy dokładnie 60 sekund w tle
     await asyncio.sleep(60)
-    
-    # Zmiana statusu na ekranie TV
     game_state["core_status"] = "BOOTING COMPLETE"
     await broadcast_state()
-    
-    # Odpalenie sceny sprzątania w Home Assistant przez Webhook
     await run_scene("error_sprzatanie")
     
-    # Odpalenie Spotify przez Home Assistant
     try:
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, lambda: requests.post(
@@ -137,8 +134,8 @@ async def delayed_final_cleanup():
                 "Content-Type": "application/json"
             },
             json={
-                "entity_id": "media_player.spotify_twoj_profil",  # <-- Podmień na swoją encję Spotify z HA!
-                "media_content_id": "spotify:playlist:IDENTYFIKATOR_TWOJEJ_PLAYLISTY",  # <-- Podmień na link do playlisty!
+                "entity_id": "media_player.spotify_twoj_profil",
+                "media_content_id": "spotify:playlist:IDENTYFIKATOR_TWOJEJ_PLAYLISTY",
                 "media_content_type": "playlist"
             },
             timeout=5
@@ -231,7 +228,6 @@ async def unlock_module(module: str):
         await broadcast_state()
         return {"status": "OK"}
 
-    # POPRAWNA KACZKA - EWAKUACJA + ODLICZANIE MINUTY
     if module == "duck_good":
         if not game_state["duck_good"]:
             game_state["duck_good"] = True
@@ -242,7 +238,6 @@ async def unlock_module(module: str):
                 "data": {}
             })
         await broadcast_state()
-        
         await run_scene("error_end")
         asyncio.create_task(delayed_final_cleanup())
         return {"status": "OK"}
@@ -260,17 +255,16 @@ async def unlock_module(module: str):
     return {"status": "OK"}
 
 
-# 1. WERSJA DLA STRONY WWW (POST)
 @app.post("/reset")
 async def reset_game_post():
     return await execute_reset()
 
-# 2. WERSJA DLA CIEBIE DO PRZEGLĄDARKI (GET)
+
 @app.get("/reset")
 async def reset_game_get():
     return await execute_reset()
 
-# Wspólna funkcja resetująca, żeby nie powtarzać kodu
+
 async def execute_reset():
     game_state["power"] = False
     game_state["unlocked_modules"] = []
@@ -288,3 +282,47 @@ async def execute_reset():
 @app.get("/scene/{scene_name}")
 async def run_scene_endpoint(scene_name: str):
     return await run_scene(scene_name)
+
+
+# =========================
+# WEBSOCKET (W pełni bezpieczny dla Rendera)
+# =========================
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+
+    client_type = websocket.query_params.get("client", "unknown")
+
+    # Sprawdzamy bezpiecznie na podstawie dedykowanej listy active_players
+    if client_type == "player" and len(active_players) == 0 and not game_state["power"]:
+        print("Pierwszy GRACZ połączony przez index.html! Odpalam scenę startową...")
+        
+        game_state["power"] = True
+        game_state["progress"] = calculate_progress()
+        system_events.append({
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "type": "POWER_ON",
+            "data": {}
+        })
+        await run_scene("error_start")
+
+    # Zapisujemy do odpowiednich list
+    active_connections.append(websocket)
+    if client_type == "player":
+        active_players.append(websocket)
+
+    await websocket.send_json({
+        "type": "STATE_UPDATE",
+        "events": system_events,
+        "game_state": game_state
+    })
+
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        if websocket in active_connections:
+            active_connections.remove(websocket)
+        if websocket in active_players:
+            active_players.remove(websocket)
