@@ -89,18 +89,21 @@ async def broadcast_state():
 
 async def run_scene(scene_name: str):
     try:
-        # Mapujemy nazwy z kodu na Twoje dokładne nazwy webhooków w HA
+        # Mapujemy logiczne nazwy z kodu na Twoje dokładne Webhook ID w Home Assistant
         webhook_mapping = {
-            "error_start": "odpal_error_start",
-            "error_end": "odpal_error_end",         # <--- upewnij się, że tak nazwałaś webhook w HA
-            "error_sprzatanie": "odpal_error_sprzatanie" # <--- upewnij się, że tak nazwałaś webhook w HA
+            "error_start": "odpal_error_start",       # <-- Twój webhook do startu gry
+            "error_end": "odpal_error_end",           # <-- Upewnij się, że tak nazywa się webhook finałowy w HA
+            "error_sprzatanie": "odpal_error_sprzatanie" # <-- Upewnij się, że tak nazywa się webhook sprzątania w HA
         }
         
         actual_webhook = webhook_mapping.get(scene_name, scene_name)
+        webhook_url = f"{HA_URL}/api/webhook/{actual_webhook}"
+        
+        print(f"Próba wysłania webhooka na adres: {webhook_url}")
         
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, lambda: requests.post(
-            f"{HA_URL}/api/webhook/{actual_webhook}", # Strzelamy prosto w webhook ngroka
+            webhook_url,
             timeout=5
         ))
         print(f"Webhook {actual_webhook} wysłany pomyślnie!")
@@ -261,7 +264,8 @@ async def unlock_module(module: str):
     return {"status": "OK"}
 
 
-@app.post("/reset")
+# Zmieniono na @app.get, żebyś mogła zresetować grę wpisując link w przeglądarkę
+@app.get("/reset")
 async def reset_game():
     game_state["power"] = False
     game_state["unlocked_modules"] = []
@@ -278,12 +282,11 @@ async def reset_game():
 
 @app.get("/scene/{scene_name}")
 async def run_scene_endpoint(scene_name: str):
-    # Zachowujemy stary endpoint, żeby niczego nie zepsuć w innych plikach
     return await run_scene(scene_name)
 
 
 # =========================
-# ZMODYFIKOWANY WEBSOCKET (Start gry tylko przez index.html)
+# WEBSOCKET (Start gry tylko przez index.html)
 # =========================
 
 @app.websocket("/ws")
@@ -294,7 +297,7 @@ async def websocket_endpoint(websocket: WebSocket):
     client_type = websocket.query_params.get("client", "unknown")
 
     # Scena startowa odpala się TYLKO gdy łączy się PIERWSZY gracz (index.html),
-    # a nie telewizor (TV.html) i gdy gra jeszcze nie ruszyła
+    # a nie telewizor (TV.html) i gdy gra jeszcze nie ruszyła (power to False)
     if client_type == "player" and len([c for c in active_connections if getattr(c, 'is_player', False)]) == 0 and not game_state["power"]:
         print("Pierwszy GRACZ połączony przez index.html! Odpalam scenę startową...")
         
@@ -305,8 +308,8 @@ async def websocket_endpoint(websocket: WebSocket):
             "type": "POWER_ON",
             "data": {}
         })
-        # Odpalenie sceny startowej w HA (error_start)
-        await run_scene("odpal_error_start_naz")
+        # Wywołujemy bezpieczną, logiczną nazwę - funkcja run_scene sama zmieni ją na prawidłowy webhook
+        await run_scene("error_start")
 
     # Oznaczamy połączenie, żeby serwer pamiętał, kto jest kim
     if client_type == "player":
