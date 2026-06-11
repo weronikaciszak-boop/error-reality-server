@@ -84,27 +84,29 @@ async def broadcast_state():
             active_connections.remove(connection)
 
 # =========================
-# FUNCTION TO RUN SCENES IN HOME ASSISTANT
+# FUNCTION TO RUN WEBHOOKS IN HOME ASSISTANT
 # =========================
 
 async def run_scene(scene_name: str):
     try:
-        # Używamy pętli uruchomieniowej, aby requests nie blokowało WebSocketów
+        # Mapujemy nazwy z kodu na Twoje dokładne nazwy webhooków w HA
+        webhook_mapping = {
+            "error_start": "odpal_error_start",
+            "error_end": "odpal_error_end",         # <--- upewnij się, że tak nazwałaś webhook w HA
+            "error_sprzatanie": "odpal_error_sprzatanie" # <--- upewnij się, że tak nazwałaś webhook w HA
+        }
+        
+        actual_webhook = webhook_mapping.get(scene_name, scene_name)
+        
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, lambda: requests.post(
-            f"{HA_URL}/api/services/scene/turn_on",
-            headers={
-                "Authorization": f"Bearer {HA_TOKEN}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "entity_id": f"scene.{scene_name}"
-            },
+            f"{HA_URL}/api/webhook/{actual_webhook}", # Strzelamy prosto w webhook ngroka
             timeout=5
         ))
+        print(f"Webhook {actual_webhook} wysłany pomyślnie!")
         return {"status": "ok"}
     except Exception as e:
-        print(f"Błąd wywołania sceny {scene_name}: {e}")
+        print(f"Błąd wywołania webhooka {scene_name}: {e}")
         return {"status": "error", "message": str(e)}
 
 # =========================
@@ -304,7 +306,7 @@ async def websocket_endpoint(websocket: WebSocket):
             "data": {}
         })
         # Odpalenie sceny startowej w HA (error_start)
-        await run_scene("error_start")
+        await run_scene("odpal_error_start_naz")
 
     # Oznaczamy połączenie, żeby serwer pamiętał, kto jest kim
     if client_type == "player":
