@@ -276,7 +276,7 @@ async def reset_game():
     return {"status": "RESET_OK"}
 
 
-@app.post("/scene/{scene_name}")
+@app.get("/scene/{scene_name}")
 async def run_scene_endpoint(scene_name: str):
     # Zachowujemy stary endpoint, żeby niczego nie zepsuć w innych plikach
     return await run_scene(scene_name)
