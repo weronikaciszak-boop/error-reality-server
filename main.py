@@ -290,6 +290,7 @@ async def reset_game_get():
 
 async def execute_reset():
     game_state["power"] = False
+    game_state["start_triggered"] = False
     game_state["unlocked_modules"] = []
     game_state["restored_modules"] = []
     game_state["progress"] = 0
