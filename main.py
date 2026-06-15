@@ -314,16 +314,25 @@ async def run_scene_endpoint(scene_name: str):
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+
     await websocket.accept()
 
     client_type = websocket.query_params.get("client", "unknown")
 
-    if client_type == "player" and len(active_players) == 0:
-        print("Pierwszy GRACZ połączony przez index.html! Odpalam scenę startową...")
+    if client_type == "player" and not game_state["start_triggered"]:
+
+        print("ERROR START")
+
+        game_state["start_triggered"] = True
+
+        system_events.append({
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "type": "ERROR_START",
+            "data": {}
+        })
 
         await run_scene("error_start")
 
-    # Zapisujemy do odpowiednich list
     active_connections.append(websocket)
 
     if client_type == "player":
@@ -340,31 +349,9 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.receive_text()
 
     except WebSocketDisconnect:
+
         if websocket in active_connections:
             active_connections.remove(websocket)
 
-        if websocket in active_players:
-            active_players.remove(websocket)
-        print("Pierwszy GRACZ połączony przez index.html! Odpalam scenę startową...")
-        
-        await run_scene("error_start")
-
-    # Zapisujemy do odpowiednich list
-    active_connections.append(websocket)
-    if client_type == "player":
-        active_players.append(websocket)
-
-    await websocket.send_json({
-        "type": "STATE_UPDATE",
-        "events": system_events,
-        "game_state": game_state
-    })
-
-    try:
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        if websocket in active_connections:
-            active_connections.remove(websocket)
         if websocket in active_players:
             active_players.remove(websocket)
