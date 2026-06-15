@@ -257,17 +257,21 @@ async def unlock_module(module: str):
         asyncio.create_task(delayed_final_cleanup())
         return {"status": "OK"}
 
-    if module not in game_state["unlocked_modules"]:
-        game_state["unlocked_modules"].append(module)
+if module not in game_state["unlocked_modules"]:
+
+    game_state["unlocked_modules"].append(module)
 
     game_state["progress"] = calculate_progress()
+
     system_events.append({
         "timestamp": datetime.datetime.utcnow().isoformat(),
         "type": "MODULE_UNLOCKED",
         "data": module
     })
+
     await broadcast_state()
-    return {"status": "OK"}
+
+return {"status": "OK"}
 
 
 @app.post("/reset")
