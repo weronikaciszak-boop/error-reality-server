@@ -278,7 +278,10 @@ async def reset_game_post():
 async def lock_status():
 
     return {
-        "unlock": game_state["progress"] >= 100,
+        "unlock": (
+    game_state["progress"] >= 100
+    and not game_state["duck_good"]
+)
         "progress": game_state["progress"],
         "modules": game_state["unlocked_modules"],
         "restored": game_state["restored_modules"]
