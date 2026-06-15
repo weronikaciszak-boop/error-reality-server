@@ -311,7 +311,7 @@ async def websocket_endpoint(websocket: WebSocket):
     client_type = websocket.query_params.get("client", "unknown")
 
     # Sprawdzamy bezpiecznie na podstawie dedykowanej listy active_players
-    if client_type == "player" and len(active_players) == 0 and not game_state["power"]:
+if client_type == "player" and len(active_players) == 0:
         print("Pierwszy GRACZ połączony przez index.html! Odpalam scenę startową...")
         
         game_state["power"] = True
