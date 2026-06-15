@@ -27,6 +27,7 @@ app.add_middleware(
 
 game_state = {
     "power": False,
+    "start_triggered": False,
     "unlocked_modules": [],
     "restored_modules": [],
     "progress": 0,
