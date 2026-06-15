@@ -310,6 +310,10 @@ async def execute_reset():
     return {"status": "RESET_OK"}
 
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
 @app.get("/scene/{scene_name}")
 async def run_scene_endpoint(scene_name: str):
     return await run_scene(scene_name)
