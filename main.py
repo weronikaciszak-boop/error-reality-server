@@ -200,6 +200,10 @@ async def verify_puzzle(payload: PuzzleCheck):
 
 @app.post("/power-on")
 async def power_on():
+
+    if game_state["power"]:
+        return {"status": "ALREADY_ON"}
+
     game_state["power"] = True
     game_state["progress"] = calculate_progress()
 
@@ -208,7 +212,9 @@ async def power_on():
         "type": "POWER_ON",
         "data": {}
     })
+
     await broadcast_state()
+
     return {"status": "OK"}
 
 
