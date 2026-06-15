@@ -314,13 +314,6 @@ async def websocket_endpoint(websocket: WebSocket):
 if client_type == "player" and len(active_players) == 0:
         print("Pierwszy GRACZ połączony przez index.html! Odpalam scenę startową...")
         
-        game_state["power"] = True
-        game_state["progress"] = calculate_progress()
-        system_events.append({
-            "timestamp": datetime.datetime.utcnow().isoformat(),
-            "type": "POWER_ON",
-            "data": {}
-        })
         await run_scene("error_start")
 
     # Zapisujemy do odpowiednich list
