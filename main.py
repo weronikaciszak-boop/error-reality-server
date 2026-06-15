@@ -271,9 +271,11 @@ async def reset_game_post():
 async def lock_status():
 
     return {
-        "unlock": game_state["progress"] >= 100
-
-
+        "unlock": game_state["progress"] >= 100,
+        "progress": game_state["progress"],
+        "modules": game_state["unlocked_modules"],
+        "restored": game_state["restored_modules"]
+    }
 @app.get("/reset")
 async def reset_game_get():
     return await execute_reset()
