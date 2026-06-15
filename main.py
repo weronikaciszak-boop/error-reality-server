@@ -310,8 +310,33 @@ async def websocket_endpoint(websocket: WebSocket):
 
     client_type = websocket.query_params.get("client", "unknown")
 
-    # Sprawdzamy bezpiecznie na podstawie dedykowanej listy active_players
-if client_type == "player" and len(active_players) == 0:
+    if client_type == "player" and len(active_players) == 0:
+        print("Pierwszy GRACZ połączony przez index.html! Odpalam scenę startową...")
+
+        await run_scene("error_start")
+
+    # Zapisujemy do odpowiednich list
+    active_connections.append(websocket)
+
+    if client_type == "player":
+        active_players.append(websocket)
+
+    await websocket.send_json({
+        "type": "STATE_UPDATE",
+        "events": system_events,
+        "game_state": game_state
+    })
+
+    try:
+        while True:
+            await websocket.receive_text()
+
+    except WebSocketDisconnect:
+        if websocket in active_connections:
+            active_connections.remove(websocket)
+
+        if websocket in active_players:
+            active_players.remove(websocket)
         print("Pierwszy GRACZ połączony przez index.html! Odpalam scenę startową...")
         
         await run_scene("error_start")
