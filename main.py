@@ -285,7 +285,7 @@ async def lock_status():
         "unlock": (
     game_state["progress"] >= 100
     and not game_state["duck_good"]
-)
+),
         "progress": game_state["progress"],
         "modules": game_state["unlocked_modules"],
         "restored": game_state["restored_modules"]
