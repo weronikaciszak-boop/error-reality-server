@@ -39,7 +39,7 @@ game_state = {
 
 system_events = []
 active_connections: List[WebSocket] = []
-active_players: List[WebSocket] = [] # Bezpieczna lista na połączenia graczy
+active_players: List[WebSocket] = []  # Bezpieczna lista na połączenia graczy
 
 SECRET_ANSWERS = {
     "food": "arch",
@@ -81,7 +81,7 @@ async def broadcast_state():
             await connection.send_json(payload)
         except:
             disconnected.append(connection)
-    
+
     for connection in disconnected:
         if connection in active_connections:
             active_connections.remove(connection)
@@ -99,20 +99,19 @@ async def run_scene(scene_name: str):
             "error_end": "odpal_error_end",
             "error_sprzatanie": "odpal_error_sprzatanie"
         }
-        
+
         actual_webhook = webhook_mapping.get(scene_name, scene_name)
         webhook_url = f"{HA_URL}/api/webhook/{actual_webhook}"
-        
+
         print(f"Wysyłam żądanie POST na webhook: {webhook_url}")
-        
+
         # NAGŁÓWKI OSZUKUJĄCE ZABEZPIECZENIA HA (Udajemy ruch lokalny)
         headers = {
             "X-Forwarded-For": "127.0.0.1",
             "X-Real-IP": "127.0.0.1"
         }
-        
+
         loop = asyncio.get_event_loop()
-        # Dodajemy 'headers=headers' do metody post:
         await loop.run_in_executor(None, lambda: requests.post(
             webhook_url,
             headers=headers,
@@ -133,7 +132,7 @@ async def delayed_final_cleanup():
     game_state["core_status"] = "BOOTING COMPLETE"
     await broadcast_state()
     await run_scene("error_sprzatanie")
-    
+
     try:
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, lambda: requests.post(
@@ -201,7 +200,6 @@ async def verify_puzzle(payload: PuzzleCheck):
 
 @app.post("/power-on")
 async def power_on():
-
     if game_state["power"]:
         return {"status": "ALREADY_ON"}
 
@@ -257,39 +255,37 @@ async def unlock_module(module: str):
         asyncio.create_task(delayed_final_cleanup())
         return {"status": "OK"}
 
-if module not in game_state["unlocked_modules"]:
+    if module not in game_state["unlocked_modules"]:
+        game_state["unlocked_modules"].append(module)
+        game_state["progress"] = calculate_progress()
+        system_events.append({
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "type": "MODULE_UNLOCKED",
+            "data": module
+        })
+        await broadcast_state()
 
-    game_state["unlocked_modules"].append(module)
-
-    game_state["progress"] = calculate_progress()
-
-    system_events.append({
-        "timestamp": datetime.datetime.utcnow().isoformat(),
-        "type": "MODULE_UNLOCKED",
-        "data": module
-    })
-
-    await broadcast_state()
-
-return {"status": "OK"}
+    return {"status": "OK"}
 
 
 @app.post("/reset")
 async def reset_game_post():
     return await execute_reset()
 
+
 @app.get("/lock-status")
 async def lock_status():
-
     return {
         "unlock": (
-    game_state["progress"] >= 100
-    and not game_state["duck_good"]
-),
+            game_state["progress"] >= 100
+            and not game_state["duck_good"]
+        ),
         "progress": game_state["progress"],
         "modules": game_state["unlocked_modules"],
         "restored": game_state["restored_modules"]
     }
+
+
 @app.get("/reset")
 async def reset_game_get():
     return await execute_reset()
@@ -314,6 +310,7 @@ async def execute_reset():
 async def health():
     return {"status": "ok"}
 
+
 @app.get("/scene/{scene_name}")
 async def run_scene_endpoint(scene_name: str):
     return await run_scene(scene_name)
@@ -325,23 +322,17 @@ async def run_scene_endpoint(scene_name: str):
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-
     await websocket.accept()
-
     client_type = websocket.query_params.get("client", "unknown")
 
     if client_type == "player" and not game_state["start_triggered"]:
-
         print("ERROR START")
-
         game_state["start_triggered"] = True
-
         system_events.append({
             "timestamp": datetime.datetime.utcnow().isoformat(),
             "type": "ERROR_START",
             "data": {}
         })
-
         await run_scene("error_start")
 
     active_connections.append(websocket)
@@ -358,11 +349,8 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             await websocket.receive_text()
-
     except WebSocketDisconnect:
-
         if websocket in active_connections:
             active_connections.remove(websocket)
-
         if websocket in active_players:
             active_players.remove(websocket)
