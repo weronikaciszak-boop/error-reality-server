@@ -217,18 +217,22 @@ async def power_on():
     return {"status": "OK"}
 
 
-@app.post("/unlock/{module}")
-async def unlock_module(module: str):
-    if module == "bad_floppy":
-        if not game_state["bad_floppy"]:
-            game_state["bad_floppy"] = True
-            system_events.append({
-                "timestamp": datetime.datetime.utcnow().isoformat(),
-                "type": "BAD_FLOPPY_DETECTED",
-                "data": {}
-            })
-        await broadcast_state()
-        return {"status": "OK"}
+if module == "bad_floppy":
+
+    game_state["bad_floppy"] = True
+
+    system_events.append({
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "type": "BAD_FLOPPY_DETECTED",
+        "data": {}
+    })
+
+    await broadcast_state()
+
+    # wyczyść flagę po wysłaniu do TV
+    game_state["bad_floppy"] = False
+
+    return {"status": "OK"}
 
     if module == "duck_bad":
         if not game_state["duck_bad"]:
