@@ -242,6 +242,10 @@ async def unlock_module(module: str):
         return {"status": "OK"}
 
     if module == "duck_good":
+        
+        game_state["duck_bad"] = False
+        game_state["bad_floppy"] = False
+        
         if not game_state["duck_good"]:
             game_state["duck_good"] = True
             game_state["core_status"] = "EVACUATE TO BALCONY"
