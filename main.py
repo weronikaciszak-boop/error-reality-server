@@ -204,7 +204,7 @@ async def power_on():
     game_state["power"] = True
     game_state["progress"] = calculate_progress()
 
-   system_events.append({
+    system_events.append({
         "timestamp": datetime.datetime.utcnow().isoformat(),
         "type": "POWER_ON",
         "data": {}
