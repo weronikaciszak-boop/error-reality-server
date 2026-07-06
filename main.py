@@ -228,6 +228,8 @@ async def unlock_module(module: str):
         await broadcast_state()
         game_state["bad_floppy"] = False
         return {"status":"OK"}
+   
+    
     # BAD DUCK
     if module == "duck_bad":
         game_state["duck_bad"] = True
@@ -274,50 +276,7 @@ async def unlock_module(module: str):
 
     return {"status":"OK"}
 
-    if module == "duck_bad":
-        if not game_state["duck_bad"]:
-            game_state["duck_bad"] = True
-            system_events.append({
-                "timestamp": datetime.datetime.utcnow().isoformat(),
-                "type": "BAD_CORE_INSERTED",
-                "data": {}
-            })
 
-        await broadcast_state()
-        return {"status": "OK"}
-
-    if module == "duck_good":
-
-        game_state["duck_bad"] = False
-        game_state["bad_floppy"] = False
-        
-
-        if not game_state["duck_good"]:
-            game_state["duck_good"] = True
-            game_state["core_status"] = "EVACUATE TO BALCONY"
-            system_events.append({
-                "timestamp": datetime.datetime.utcnow().isoformat(),
-                "type": "REALITY_REBOOTED",
-                "data": {}
-            })
-        await broadcast_state()
-        await run_scene("error_end")
-        asyncio.create_task(delayed_final_cleanup())
-        return {"status": "OK"}
-
-
-    if module not in game_state["unlocked_modules"]:
-        game_state["unlocked_modules"].append(module)
-        game_state["progress"] = calculate_progress()
-        system_events.append({
-            "timestamp": datetime.datetime.utcnow().isoformat(),
-            "type": "MODULE_UNLOCKED",
-            "data": module
-        })
-        await broadcast_state()
-
-
-    return {"status": "OK"}
 
 
 
