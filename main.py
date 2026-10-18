@@ -10,7 +10,7 @@ app = FastAPI()
 
 # Link z ngroka (pamiętaj o aktualizacji, jeśli zrestartujesz ngroka na komputerze!)
 HA_URL = "https://aged-nutcase-nearby.ngrok-free.dev"
-HA_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhMTU4OWM0ODFiY2Y0NmE0YTIyNmJjYmZhNDBhMzYyOSIsImlhdCI6MTc4MTEyMzY2MywiZXhwIjoyMDk2NDgzNjYzfQ.VQcvW23zRZ4OQSJbelXmQyDJEhaqCmkUd2DDVfoQcMk"
+HA_TOKEN = "3Ezj89OAv42rZDWHityxsgGIjbp_3WA87J9MaB7ofzrzvMYdb"
 
 app.add_middleware(
     CORSMiddleware,
